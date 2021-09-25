@@ -49,7 +49,6 @@ public:
     MODCONSTRUCTOR(CChanFilter2Mod)
     {
         AddHelpCommand();
-        AddCommand("PartDetach", static_cast<CModCommand::ModCmdFunc>(&CChanFilter2Mod::OnPartDetachCommand), "[enable]", "Enable/Disable the function which deatch channel when first part (part second time to actually part.) (without arg to show current config.)");
         AddCommand("AddClient", static_cast<CModCommand::ModCmdFunc>(&CChanFilter2Mod::OnAddClientCommand), "<identifier> [mode]", "Add a client, mode is either whitelist or blacklist (default to blacklist.)");
         AddCommand("DelClient", static_cast<CModCommand::ModCmdFunc>(&CChanFilter2Mod::OnDelClientCommand), "<identifier>", "Delete a client.");
         AddCommand("ListClients", static_cast<CModCommand::ModCmdFunc>(&CChanFilter2Mod::OnListClientsCommand), "", "List known clients and their mode and channel list.");
@@ -57,6 +56,8 @@ public:
         AddCommand("RestoreChans", static_cast<CModCommand::ModCmdFunc>(&CChanFilter2Mod::OnRestoreChansCommand), "[client]", "Restore the hidden channels of a client (for balcklist mode only.)");
         AddCommand("HideChans", static_cast<CModCommand::ModCmdFunc>(&CChanFilter2Mod::OnHideChansCommand), "[client]", "Hide all channels of a client.");
     }
+
+    bool OnLoad(const CString& sArgs, CString& sMessage) override;
 
     void OnPartDetachCommand(const CString& line);
     void OnAddClientCommand(const CString& line);
@@ -71,6 +72,8 @@ public:
     virtual EModRet OnSendToClientMessage(CMessage& message) override;
 
 private:
+    bool partdetach;
+
     ModeAndChannels GetModeAndChannels(const CString& identifier) const;
     bool IsChannelVisible(const CString& identifier, const CString& channel) const;
     void SetChannelVisible(const CString& identifier, const CString& channel, bool visible);
@@ -79,6 +82,12 @@ private:
     bool DelClient(const CString& identifier);
     bool HasClient(const CString& identifier);
 };
+
+bool CChanFilter2Mod::OnLoad(const CString& arg, CString& message)
+{
+    partdetach = arg.Find("partdetach") != CString::npos;
+    return true;
+}
 
 void CChanFilter2Mod::OnAddClientCommand(const CString& line)
 {
@@ -100,26 +109,6 @@ void CChanFilter2Mod::OnAddClientCommand(const CString& line)
     }
     AddClient(identifier, mode.AsLower());
     PutModule("Client added: " + identifier);
-}
-
-void CChanFilter2Mod::OnPartDetachCommand(const CString& line)
-{
-    const CString val = line.Token(1).AsLower();
-    if (val.empty()) {
-        if (GetNV(",partdetach").Equals("1"))
-            PutModule("PartDetach is enabled.");
-        else
-            PutModule("PartDetach is disabled.");
-    } else {
-        if (val.Equals("enable") || val.Equals("true") || val.Equals("1")) {
-            SetNV(",partdetach", "1");
-            PutModule("PartDetach is enabled.");
-        }
-        if (val.Equals("disable") || val.Equals("false") || val.Equals("0")) {
-            DelNV(",partdetach");
-            PutModule("PartDetach is disabled.");
-        }
-    }
 }
 
 void CChanFilter2Mod::OnDelClientCommand(const CString& line)
@@ -312,7 +301,7 @@ CModule::EModRet CChanFilter2Mod::OnUserPartMessage(CPartMessage& message) {
             return HALT;
         }
         // partdetach
-        if (GetNV(",partdetach").Equals("1")) {
+        if (partdetach) {
             if (!channel->IsDetached() && channel->InConfig()) {
                 CString reason = message.GetReason();
                 if (reason.Token(0).CaseCmp("force") == 0) {

@@ -49,22 +49,10 @@ or in the username:
 
 Arguments
 -----------------------------------
-This user module takes no arguments. 
+Pass `partdetach` to enable partdetach function.
 
 Commands
 -----------------------------------
-Check if partdetach enabled:
-
-`/msg *chanfilter PartDetach`
-
-Enable partdetach:
-
-`/msg *chanfilter PartDetach enable|true|1`
-
-Disable partdetach:
-
-`/msg *chanfilter PartDetach disable|false|0`
-
 Add a client (mode default to blacklist):
 
 `/msg *chanfilter AddClient <identifier> [mode]`
